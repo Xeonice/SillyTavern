@@ -1,4 +1,5 @@
 import path from 'node:path';
+import fs from 'node:fs';
 import webpack from 'webpack';
 import getPublicLibConfig from '../../webpack.config.js';
 
@@ -16,7 +17,17 @@ export default function getWebpackServeMiddleware() {
         const outputFile = publicLibConfig.output?.filename;
 
         if (req.method === 'GET' && path.parse(req.path).base === outputFile) {
-            return res.sendFile(outputFile, { root: outputPath });
+            const fullPath = path.join(outputPath, outputFile);
+            
+            // Check if built file exists
+            if (fs.existsSync(fullPath)) {
+                return res.sendFile(outputFile, { root: outputPath });
+            } else {
+                // If no built file exists, return error
+                console.error(`Built lib.js not found at: ${fullPath}`);
+                console.error('Please run "npm run build" first or use "npm start" for auto-build');
+                return res.status(404).send('lib.js not found. Please run "npm run build" first.');
+            }
         }
 
         next();
